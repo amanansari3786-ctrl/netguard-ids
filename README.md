@@ -31,22 +31,37 @@ Every alert is tagged with a **MITRE ATT&CK** technique ID.
 
 ## Quick start
 
+Works on Windows, macOS and Linux. Needs Python 3.10+ (uses `dataclass(slots=True)`).
+
 ```bash
+# 1. get the code
 git clone https://github.com/amanansari3786-ctrl/netguard-ids.git
 cd netguard-ids
 
-# Windows (this project was built on Windows 11)
-uv venv .venv
-uv pip install --python .venv/Scripts/python.exe scapy pytest
+# 2. create a virtual environment and install dependencies
+python -m venv .venv
 
-# macOS / Linux
-python3 -m venv .venv && .venv/bin/pip install scapy pytest
+# Windows:
+.venv\Scripts\activate
+# macOS / Linux:
+source .venv/bin/activate
+
+# 3. install dependencies
+pip install -r requirements.txt
 ```
 
-### 1. Generate sample traffic
+That's the whole setup. From here, `python netguard.py ...` works directly.
+
+### 1. Run the test suite (24 tests, ~3 seconds)
 
 ```bash
-.venv/Scripts/python.exe netguard.py gen
+python -m pytest tests/ -q
+```
+
+### 2. Generate sample traffic
+
+```bash
+python netguard.py gen
 ```
 
 Creates two pcaps:
@@ -58,13 +73,13 @@ All addresses are RFC1918 / documentation ranges. Nothing leaves your machine.
 ### 2. Analyse a capture
 
 ```bash
-.venv/Scripts/python.exe netguard.py scan --pcap samples/attacks.pcap --jsonl data/alerts.jsonl
+python netguard.py scan --pcap samples/attacks.pcap --jsonl data/alerts.jsonl
 ```
 
 ### 3. Generate the report
 
 ```bash
-.venv/Scripts/python.exe netguard.py report
+python netguard.py report
 # open data/report.html in your browser
 ```
 
@@ -169,7 +184,7 @@ high-abuse TLD) and uses volume only as corroboration.
 ## Testing
 
 ```bash
-.venv/Scripts/python.exe -m pytest tests/ -q
+python -m pytest tests/ -q
 ```
 
 24 tests covering the parser, every rule's true-positive and false-positive
