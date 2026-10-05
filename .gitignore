@@ -6,3 +6,7 @@ data/*.jsonl
 data/report.html
 samples/*.pcap
 .pytest_cache/
+
+# debug/scratch scripts (local only)
+run_live_elevated.ps1
+live_test.ps1
