@@ -1,5 +1,10 @@
 # NetGuard IDS
 
+[![CI](https://github.com/amanansari3786-ctrl/netguard-ids/actions/workflows/ci.yml/badge.svg)](https://github.com/amanansari3786-ctrl/netguard-ids/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![MITRE ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK-red)](https://attack.mitre.org/)
+
 A lightweight, from-scratch **network intrusion detection system** written in
 Python. Built for learning network/SOC fundamentals and as a portfolio project.
 
@@ -27,7 +32,7 @@ Every alert is tagged with a **MITRE ATT&CK** technique ID.
 ## Quick start
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/amanansari3786-ctrl/netguard-ids.git
 cd netguard-ids
 
 # Windows (this project was built on Windows 11)
