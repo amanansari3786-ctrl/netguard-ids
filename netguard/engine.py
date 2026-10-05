@@ -56,23 +56,81 @@ class IDSEngine:
 
     def run_live(self, iface: str, bpf: str | None = None,
                  count: int = 0, duration: int = 0) -> Stats:
-        """Sniff a real interface. Needs admin/Npcap for full capture."""
-        from scapy.all import sniff  # type: ignore
+        """Sniff a real interface. Needs admin/Npcap for full capture.
+
+        We drive the libpcap socket ourselves rather than using scapy's
+        ``sniff()`` helper: on Windows ``sniff(timeout=...)`` raises
+        ``'<' not supported between instances of 'int' and 'NoneType'``
+        inside L2pcapListenSocket, so duration-based capture was unusable.
+        Polling a non-blocking socket with our own deadline also gives us
+        clean Ctrl-C handling and lets stats print on a timer.
+        """
+        from scapy.all import conf, sniff  # type: ignore
 
         print(f"[netguard] live capture on {iface} bpf={bpf!r} "
               f"count={count} duration={duration}", flush=True)
+
+        deadline = time.time() + duration if duration else None
         t0 = time.time()
+        last_progress = t0
+
+        def _on_pkt(pkt):
+            nonlocal last_progress
+            self.process_packet(pkt)
+            now = time.time()
+            if self.verbose_every and (now - last_progress) >= 5:
+                last_progress = now
+                print("  " + self.stats.snapshot(), flush=True)
+
         try:
-            sniff(iface=iface, filter=bpf, store=False,
-                  prn=self.process_packet, count=count or None,
-                  timeout=duration or None)
+            if bpf:
+                # BPF filtering requires scapy's own filter engine path,
+                # which does not support a duration on Windows.
+                print("[netguard] note: --filter forces scapy sniff(); "
+                      "Ctrl+C to stop.", flush=True)
+                sniff(iface=iface, filter=bpf, store=False, prn=_on_pkt,
+                      count=count or None)
+            else:
+                conf.iface = iface
+                sock = conf.L2listen()
+                # L2pcapListenSocket exposes the libpcap handle via
+                # .pcap_fd (not .socket) and offers select()/nonblock_recv()
+                # for a portable readiness wait across platforms.
+                import select as _select
+                from scapy.error import Scapy_Exception
+
+                while True:
+                    if deadline and time.time() >= deadline:
+                        break
+                    if count and self.stats.packets >= count:
+                        break
+                    try:
+                        rd, _, _ = _select.select([sock], [], [], 0.5)
+                    except (OSError, ValueError):
+                        break
+                    if not rd:
+                        continue
+                    try:
+                        pkt = sock.recv()
+                    except Scapy_Exception:
+                        break
+                    except (TimeoutError, OSError):
+                        continue
+                    if pkt is None:
+                        continue
+                    _on_pkt(pkt)
+                try:
+                    sock.close()
+                except Exception:
+                    pass
         except KeyboardInterrupt:
             print("\n[netguard] interrupted", flush=True)
         except PermissionError:
             print("[netguard] PermissionError: run as Administrator, or use "
                   "--pcap <file> for offline analysis.", flush=True)
         except Exception as e:
-            print(f"[netguard] capture error: {e}", flush=True)
+            print(f"[netguard] capture error: {type(e).__name__}: {e}",
+                  flush=True)
         self.finish()
         return self.stats
 
