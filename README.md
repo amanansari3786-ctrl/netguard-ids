@@ -16,6 +16,12 @@ Every alert is tagged with a **MITRE ATT&CK** technique ID.
 
 ---
 
+![NetGuard IDS SOC report](docs/report.png)
+
+*The generated HTML report: severity KPIs, top alert sources, alerts by rule, and a newest-first alert log with MITRE ATT&CK IDs.*
+
+---
+
 ## What it detects
 
 | Rule ID | Detection | ATT&CK | Severity |
@@ -178,6 +184,52 @@ isolated capture of one attacker sets its own baseline and silences the rule.
 evidence; busy resolvers and multi-tab browsers legitimately produce hundreds of
 queries. The rule requires a structural signal (abnormally long DNS label, or a
 high-abuse TLD) and uses volume only as corroboration.
+
+---
+
+## Usage examples
+
+Real output from the two generated captures:
+
+**Clean traffic — the false-positive test.** 308 packets of ordinary browsing,
+DNS and downloads produce **zero** alerts:
+
+```console
+$ python netguard.py scan --pcap samples/clean.pcap
+[netguard] done. packets=308 events=308 alerts=0
+total alerts     : 0
+```
+
+**Attack traffic — all 7 simulated attacks caught.** 1130 packets yield 17
+alerts across all 6 rules:
+
+```console
+$ python netguard.py scan --pcap samples/attacks.pcap
+total alerts     : 17
+by severity      : {'CRITICAL': 2, 'HIGH': 8, 'MEDIUM': 2, 'LOW': 5}
+by rule          :
+   NG-TTL-ANOM            5
+   NG-BURST               5
+   NG-SYN-SCAN            2
+   NG-DNS-EXFIL           2
+   NG-ARP-SPOOF           2
+   NG-BRUTE-FORCE         1
+```
+
+**Build the HTML report:**
+
+```console
+$ python netguard.py report
+[report] wrote data/report.html
+```
+
+**List every detection rule with its ATT&CK mapping:**
+
+```console
+$ python netguard.py rules
+NG-ARP-SPOOF           [Critical] Possible ARP spoofing / MITM
+                       ATT&CK  : T1557 - ARP Cache Poisoning (MITM)
+```
 
 ---
 
